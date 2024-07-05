@@ -1,88 +1,75 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import SearchInput from '../Search/SearchInput';
 import FilterCountry from '../FilterCountry/FilterCountry';
-import { Link } from 'react-router-dom';
-function AllCountries() {
+
+const AllCountries = ({ theme }) => {
   const [countries, setCountries] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
 
   useEffect(() => {
-    axios.get("https://restcountries.com/v3.1/all")
-      .then(res => {
-        console.log(res.data);
-        setCountries(res.data);
-        setIsLoading(false);
-      })
-      .catch(error => {
-        console.error(error);
-        setError(error.message);
-        setIsLoading(false);
-      });
+    fetchAllCountries();
   }, []);
+
+  const fetchAllCountries = async () => {
+    try {
+      const res = await axios.get("https://restcountries.com/v3.1/all");
+      setCountries(res.data);
+    } catch (error) {
+      console.error('Xəta baş verdi:', error);
+     
+    }
+  };
 
   const getCountryByName = async (countryName) => {
     try {
-      const res = await fetch(`https://restcountries.com/v3.1/name/${countryName}`);
-      if (!res.ok) throw new Error('Not found any country!');
-      const data = await res.json();
-      setCountries(data);
+      const res = await axios.get(`https://restcountries.com/v3.1/name/${countryName}`);
+      setCountries(res.data);
     } catch (error) {
-      setError(error.message);
+      console.error('Xəta baş verdi:', error);
+     
     }
   };
 
   const getCountryByRegion = async (regionName) => {
     try {
-      const res = await fetch(`https://restcountries.com/v3.1/region/${regionName}`);
-      const data = await res.json();
-      setCountries(data);
+      if (!regionName) {
+        fetchAllCountries();
+        return;
+      }
+  
+      const res = await axios.get(`https://restcountries.com/v3.1/region/${regionName}`);
+      setCountries(res.data);
     } catch (error) {
-      setError(error.message);
+      console.error('Xəta baş verdi:', error);
     }
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
   return (
-    <div className="all__country__wrapper">
+    <div className={`all__country__wrapper ${theme === 'dark' ? 'dark' : 'light'}`}>
       <div className="country__top">
-        <div className="search">
-          <SearchInput onSearch={getCountryByName} />
-        </div>
-        <div className="filter">
-          <FilterCountry onSelect={getCountryByRegion}/>
-        </div>
+        <SearchInput onSearch={getCountryByName} />
+        <FilterCountry onSelect={getCountryByRegion} />
       </div>
       <div className="country__bottom">
-        {isLoading && !error && <h4>Loading...</h4>}
-        {error && !isLoading && <h4>{error}</h4>}
-
-        {countries.map((country)=> (
-          <Link to={`/country/${country.name.common}`}>
-          <div className="country_card" key={country.cca3}>
-            <div className="country_img">
-              <img src={country.flags.png} alt="" />
+        {countries.map((country) => (
+          <Link to={`/country/${country.name.common}`} key={country.cca3}>
+            <div className="country_card">
+              <div className="country_img">
+                <img src={country.flags.png} alt="" />
+              </div>
+              <div className="country_data">
+                <h3>{country.name.common}</h3>
+                <h6>Population: {country.population}</h6>
+                <h6>Region: {country.region}</h6>
+                <h6>Capital: {country.capital}</h6>
+              </div>
             </div>
-            <div className="country_data">
-              <h3>{country.name.common}</h3>
-              <h6>Population: {country.population}</h6>
-              <h6>Region: {country.region}</h6>
-              <h6>Capital: {country.capital}</h6>
-            </div>
-          </div>
           </Link>
         ))}
       </div>
     </div>
   );
-}
+};
 
 export default AllCountries;
